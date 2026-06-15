@@ -1,0 +1,16 @@
+# Python / venv
+.venv/
+__pycache__/
+*.pyc
+
+# Airflow local runtime
+airflow_home/
+*.log
+
+# Generated data (reproduce with data/generate_aml_data.py)
+data/*.jsonl
+
+# OS / creds
+.DS_Store
+*-key.json
+application_default_credentials.json
