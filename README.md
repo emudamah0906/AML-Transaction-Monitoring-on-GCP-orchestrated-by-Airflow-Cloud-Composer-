@@ -1,10 +1,19 @@
 # AML Transaction Monitoring on GCP (Airflow / Cloud Composer)
 
-An anti-money-laundering (AML) transaction-monitoring pipeline on Google Cloud,
-orchestrated with **Apache Airflow** (the Cloud Composer pattern). It ingests
-transactions into BigQuery, runs FINTRAC-style detection rules, scores customer
-risk, and prepares a training-ready dataset for an AML model — gated by
-data-quality checks.
+An anti-money-laundering (AML) transaction-monitoring platform on Google Cloud
+covering **batch, streaming, and event-driven** ingestion. It runs FINTRAC-style
+detection rules, scores customer risk, and prepares a training-ready dataset for
+an AML model — gated by data-quality checks.
+
+## Three ingestion modes
+| Mode | Purpose | Tech |
+|------|---------|------|
+| **Batch** | Daily detection, structuring patterns, customer risk rating, reporting | Apache Airflow / Cloud Composer + BigQuery |
+| **Streaming** | Real-time screening of each transaction on arrival (large cash, sanctions, high-risk geo) | Pub/Sub + Dataflow (Apache Beam) + BigQuery |
+| **Event-driven** | Auto-ingest an upstream file feed the moment it lands | Cloud Storage + Cloud Function (gen2) |
+
+Streaming handles per-transaction red flags instantly; batch handles patterns that
+need aggregation over time (e.g. structuring across a day).
 
 ## Pipeline (Airflow DAG)
 
@@ -36,9 +45,12 @@ ingestion and the data-quality gate run as `PythonOperator` tasks.
 
 ## Layout
 ```
-dags/aml_monitoring_dag.py   # the Airflow DAG
-sql/                         # 8 BigQuery transforms (stage, 4 rules, merge, CRR, features)
-data/generate_aml_data.py    # synthetic transactions + watchlist + high-risk countries
+dags/aml_monitoring_dag.py        # BATCH: the Airflow DAG
+sql/                              # 8 BigQuery transforms (stage, 4 rules, merge, CRR, features)
+streaming/aml_stream.py           # STREAMING: Pub/Sub -> Beam -> real-time alerts
+streaming/publish_transactions.py # streams live transactions to Pub/Sub
+cloud_function/main.py            # EVENT-DRIVEN: GCS file arrival -> BigQuery
+data/generate_aml_data.py         # synthetic transactions + watchlist + high-risk countries
 ```
 
 ## Run locally (Airflow against real BigQuery)
